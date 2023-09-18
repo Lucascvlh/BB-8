@@ -7,21 +7,21 @@ from selenium.common.exceptions import NoSuchElementException, NoAlertPresentExc
 from selenium.webdriver.common.alert import Alert
 from dotenv import load_dotenv
 from pyautogui import hotkey
-from function import createTxt
+from function import createTxt, finish
 import time
 import os
-import datetime
+from datetime import datetime, timedelta
 
 from function import confirm_action
 
 load_dotenv()
 
-today = datetime.date.today()
-todayFormat = today.strftime("%d/%m/%y")
-todayTxt = today.strftime("%d-%m-%y")
+today = datetime.now()
+futureDay = today + timedelta(days=4)
+futureDayFormatted = futureDay.strftime("%d/%m/%y")
 
 driver = webdriver.Chrome()
-wait = WebDriverWait(driver, 10)
+wait = WebDriverWait(driver, 30)
 driver.maximize_window()
 
 #login no BL
@@ -45,22 +45,24 @@ window_projudi = driver.current_window_handle
 driver.find_element(By.XPATH, '//*[@id="login"]').send_keys(os.getenv('LOGIN_PROJUDI'))
 driver.find_element(By.XPATH, '//*[@id="senha"]').send_keys(os.getenv('PASSWORD_PROJUDI') + Keys.ENTER)
 time.sleep(5)
-confirm_action()
 
-processView = []
+confirmation = confirm_action()
 
 directory = 'Processos'
 if not os.path.exists(directory):
   os.makedirs(directory)
 
-if confirm_action:
+if confirmation:
+  driver.switch_to.window(window_projudi)
   driver.get(os.getenv('URL_CITACOES_PROJUDI'))
   time.sleep(5)
   dayCienc = driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[8]/font/strong').text
-  todayFormat = '18/09/23' #Está aqui só pra maquiar o dia, depois quando terminar, excluir
-  a = 0
+
+  searchFile = 0
+
   try:
-    while todayFormat == dayCienc:
+    while dayCienc <= futureDayFormatted:
+      todayTxt = dayCienc.replace('/','-')
       process = driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[1]/a').text
       driver.switch_to.window(window_BrainLaw)
       campoPesquisaBL = '//*[@id="txtNrProcesso_F"]'
@@ -79,7 +81,6 @@ if confirm_action:
           driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[1]/a').click()
           time.sleep(2)
           driver.find_element(By.XPATH, '/html/body/div[5]/p/a[3]').click()
-          
           while True:
             try:
               wait.until(EC.alert_is_present())
@@ -88,7 +89,14 @@ if confirm_action:
               break
             except NoAlertPresentException:
               continue
-          time.sleep(6)
+          
+          login = os.getenv('LOGIN')
+          downloadDirectory = f'C:\\Users\\{login}\\Downloads'
+          expectedFile = f'{process}.pdf'
+          while not os.path.exists(os.path.join(downloadDirectory, expectedFile)):
+            print('Aguardando o download terminar...')
+            time.sleep(1)
+
           driver.back()
           #realizar o upload
           driver.switch_to.window(window_cadastro)
@@ -103,16 +111,12 @@ if confirm_action:
           hotkey('ctrl','v')
           driver.find_element(By.XPATH, '//*[@id="formularioPreCadastroTcg"]/div/div/div/div[4]/div/div/div/div/div/div/div/div[1]/div[1]').click()
           time.sleep(5)
-          if a == 0:
+          if searchFile == 0:
             hotkey('shift','tab')
             hotkey('shift','tab')
-            hotkey('down')
-            hotkey('down')
-            hotkey('down')
-            hotkey('down')
-            hotkey('down')
-            hotkey('down')
-            hotkey('down')
+            count = os.getenv('COUNT_DOWN')
+            for _ in range(int(count)):
+              hotkey('down')
             hotkey('enter')
             time.sleep(0.5)
             hotkey('tab')
@@ -125,17 +129,17 @@ if confirm_action:
             hotkey('down')
             hotkey('up')
             hotkey('enter')
-          a += 1 
+          searchFile += 1 
           #Esperando carregar o arquivo para mandar
           wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="gridArquivosPreCadastroTcg"]/div/div[6]/div/div/div[1]/div/table/tbody/tr[1]/td[2]')))
           i = 0
           while True:
             archProcess = driver.find_element(By.XPATH, '//*[@id="gridArquivosPreCadastroTcg"]/div/div[6]/div/div/div[1]/div/table/tbody/tr[1]/td[2]').text
-            nameWhitOutExtension, extension = os.path.splitext(archProcess)
-            if nameWhitOutExtension == process:
+            nameWhitoutExtension, extension = os.path.splitext(archProcess)
+            if nameWhitoutExtension == process:
               driver.find_element(By.XPATH, '//*[@id="btnGravarPreCadastroTcg"]/div').click()
-              processView.append(f'Processo {process} cadastrado via automação.')
               print(f'Processo {process} cadastrado via automação.')
+              createTxt(f'Processo {process} cadastrado via automação.', directory, todayTxt) 
               break
             elif i < 5:
               i += 1
@@ -143,6 +147,8 @@ if confirm_action:
               continue
             elif i >= 5:
               print('Nome do arquivo diferente do número do processo.')
+              createTxt(f'Nome do arquivo diferente do número do processo {process}.', directory, todayTxt) 
+              driver.quit()
               break
           wait.until(EC.invisibility_of_element_located((By.XPATH,'//*[@id="btnGravarPreCadastroTcg"]/div')))
           time.sleep(5)
@@ -163,14 +169,17 @@ if confirm_action:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         driver.back()
         hotkey('f5')
-        processView.append(f'Processo {process} já cadastrado no BrainLaw.')
         print(f'Processo {process} já cadastrado no BrainLaw.')
+        createTxt(f'Processo {process} já cadastrado no BrainLaw.', directory, todayTxt)        
         time.sleep(5)
         dayCienc = driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[8]/font/strong').text
+    finish('Processo finalizado.')
+    driver.quit()
   except NoSuchElementException:
-    print('Não tem processo para o dia.')
-  createTxt(processView, directory, todayTxt)
+    finish('Processo não encontrado.')
+    driver.quit()
 else:
-  driver.close()
+  finish('Login não confirmado.')
+  driver.quit()
 
 

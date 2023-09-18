@@ -6,3 +6,4 @@ pyinstaller.exe
 dist
 build
 chromedriver-win64
+__pycache__
