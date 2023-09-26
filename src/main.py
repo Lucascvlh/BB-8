@@ -19,6 +19,7 @@ load_dotenv()
 today = datetime.now()
 futureDay = today + timedelta(days=4)
 futureDayFormatted = futureDay.strftime("%d/%m/%y")
+futureDayDate = datetime.strptime(futureDayFormatted, "%d/%m/%y")
 
 driver = webdriver.Chrome()
 wait = WebDriverWait(driver, 30)
@@ -48,6 +49,9 @@ time.sleep(5)
 
 confirmation = confirm_action()
 
+countOk = 0
+countRegistred = 0
+
 directory = 'Processos'
 if not os.path.exists(directory):
   os.makedirs(directory)
@@ -57,11 +61,11 @@ if confirmation:
   driver.get(os.getenv('URL_CITACOES_PROJUDI'))
   time.sleep(5)
   dayCienc = driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[8]/font/strong').text
-
+  dayCiencDate = datetime.strptime(dayCienc, "%d/%m/%y")
   searchFile = 0
 
   try:
-    while dayCienc <= futureDayFormatted:
+    while dayCiencDate <= futureDayDate:
       todayTxt = dayCienc.replace('/','-')
       process = driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[1]/a').text
       driver.switch_to.window(window_BrainLaw)
@@ -140,6 +144,7 @@ if confirmation:
               driver.find_element(By.XPATH, '//*[@id="btnGravarPreCadastroTcg"]/div').click()
               print(f'Processo {process} cadastrado via automação.')
               createTxt(f'Processo {process} cadastrado via automação.', directory, todayTxt) 
+              countRegistred += 1
               break
             elif i < 5:
               i += 1
@@ -163,6 +168,7 @@ if confirmation:
           hotkey('f5')
           time.sleep(5)
           dayCienc = driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[8]/font/strong').text
+          dayCiencDate = datetime.strptime(dayCienc, "%d/%m/%y")
       except NoSuchElementException:
         driver.switch_to.window(window_projudi)
         driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[10]/a').click()
@@ -173,6 +179,15 @@ if confirmation:
         createTxt(f'Processo {process} já cadastrado no BrainLaw.', directory, todayTxt)        
         time.sleep(5)
         dayCienc = driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[8]/font/strong').text
+        dayCiencDate = datetime.strptime(dayCienc, "%d/%m/%y")
+        countOk += 1
+    todayFormat = datetime.strftime(today, "%d/%m/%y")
+    if countRegistred + countOk != 0:  
+      percentage = (countRegistred/(countRegistred+countRegistred))*100
+      percentageRounded = round(percentage,2)
+      createTxt(f'Início semana: {todayFormat}\nProcesso já cadastrado: {countOk}\nProcesso cadastrado via automação: {countRegistred}\nPorcentagem aproveitamento: {percentageRounded}%\n--------------------------------------', directory, 'Resumo semanal')
+    else:
+      createTxt(f'Início semana: {todayFormat}\nProcesso já cadastrado: {countOk}\nProcesso cadastrado via automação: {countRegistred}\nPorcentagem aproveitamento: 0%\n--------------------------------------', directory, 'Resumo semanal')
     finish('Processo finalizado.')
     driver.quit()
   except NoSuchElementException:

@@ -9,9 +9,6 @@ def confirm_action():
         print("Login realizado com sucesso.")
         return True
     else:
-        print("Login cancelado.")
-        print("Saindo do sistema...")
-        time.sleep(3)
         return False
     
 def statusCode200(message):
