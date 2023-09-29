@@ -10,15 +10,6 @@ def confirm_action():
         return True
     else:
         return False
-    
-def statusCode200(message):
-    while True:
-        response = requests.get(os.getenv('URL_CITACOES_PROJUDI'))
-        if response.status_code == 200:
-            print(message)
-            break
-        else:
-            time.sleep(1)
 
 def createTxt(result, directory, day):
     nameArch = os.path.join(directory, f'{day}.txt')
