@@ -26,7 +26,9 @@ Para utilizar este script, siga estas etapas:
 
 Instale todas as dependências necessárias, como o Selenium e o pyautogui, executando:
 
-```pip install -r requirements.txt```.
+```
+pip freeze > requirements.txt
+pip install -r requirements.txt```.
 
 **Configure o arquivo .env com as variáveis de ambiente necessárias.**
 
