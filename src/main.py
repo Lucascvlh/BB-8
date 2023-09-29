@@ -76,7 +76,7 @@ if confirmation:
       hotkey('ctrl','a')
       hotkey('ctrl','c')
       driver.find_element(By.XPATH,'//*[@id="ContentMaster"]/div/div[2]/div[4]/div/div/button').click()
-      time.sleep(5)
+      time.sleep(7)
       try:
         noData = driver.find_element(By.XPATH, '//*[@id="ContentPlaceHolder1_ASPxGridViewProcessos_DXEmptyRow"]/td[2]/div').text
         if str(noData).strip() == 'No data to display':
