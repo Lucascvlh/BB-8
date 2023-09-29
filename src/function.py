@@ -1,6 +1,5 @@
 import easygui
 import os
-import requests
 import time
 
 def confirm_action():
