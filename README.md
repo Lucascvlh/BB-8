@@ -28,7 +28,8 @@ Instale todas as dependências necessárias, como o Selenium e o pyautogui, exec
 
 ```
 pip freeze > requirements.txt
-pip install -r requirements.txt```.
+pip install -r requirements.txt
+```
 
 **Configure o arquivo .env com as variáveis de ambiente necessárias.**
 
