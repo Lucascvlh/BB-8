@@ -1,4 +1,6 @@
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -7,12 +9,10 @@ from selenium.common.exceptions import NoSuchElementException, NoAlertPresentExc
 from selenium.webdriver.common.alert import Alert
 from dotenv import load_dotenv
 from pyautogui import hotkey
-from function import createTxt, finish
+from function import createTxt, finish, confirm_action
 import time
 import os
 from datetime import datetime, timedelta
-
-from function import confirm_action
 
 load_dotenv()
 
@@ -23,7 +23,7 @@ futureDayDate = datetime.strptime(futureDayFormatted, "%d/%m/%y")
 
 login = os.getenv('LOGIN')
 
-driver = webdriver.Chrome()
+driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
 wait = WebDriverWait(driver, 30)
 waitUpload = WebDriverWait(driver, 90)
 driver.maximize_window()
@@ -74,6 +74,8 @@ if confirmation:
   driver.switch_to.window(window_projudi)
   driver.get(os.getenv('URL_CITACOES_PROJUDI'))
   time.sleep(5)
+  driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[2]/th[8]/a').click()
+  time.sleep(3)
   dayCienc = driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[8]/font/strong').text
   dayCiencDate = datetime.strptime(dayCienc, "%d/%m/%y")
   searchFile = 0
@@ -96,14 +98,16 @@ if confirmation:
         if str(noData).strip() == 'No data to display':
           driver.switch_to.window(window_cadastro)
           driver.find_element(By.XPATH, '//*[@id="btnPublicacoesTcg"]').click()
-          wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="ListarDadosExtraidosTcg"]/div/div[5]/div/table/tbody/tr[2]/td[13]/div/div[2]/div/div/div[1]/input')))
-          driver.find_element(By.XPATH, '//*[@id="ListarDadosExtraidosTcg"]/div/div[5]/div/table/tbody/tr[2]/td[13]/div/div[2]/div/div/div[1]/input').send_keys(process)
-          processBL = driver.find_element(By.XPATH, '//*[@id="ListarDadosExtraidosTcg"]/div/div[6]/div/div/div[1]/div/table/tbody/tr[1]/td[13]').text
+          wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="ListarDadosExtraidosTcg"]/div/div[6]/div/div/div[1]/div/table/tbody')))
+          driver.find_element(By.XPATH, '//*[@id="ListarDadosExtraidosTcg"]/div/div[5]/div/table/tbody/tr[2]/td[14]/div/div[2]/div/div/div[1]/input').send_keys(process)
+          time.sleep(4)
+          processBL = driver.find_element(By.XPATH, '//*[@id="ListarDadosExtraidosTcg"]/div/div[6]/div/div/div[1]/div/table/tbody/tr[1]/td[14]').text
+          time.sleep(1)
+          driver.find_element(By.XPATH, '//*[@id="btnCancelar_UcPublicacaoTcgGrid"]').click()
           while str(processBL) != str(process):
             if processBL != '':
               time.sleep(1)
             else:
-              driver.find_element(By.XPATH, '//*[@id="btnCancelar_UcPublicacaoTcgGrid"]').click()
               #fazendo download do processo
               driver.switch_to.window(window_projudi)
               driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[1]/a').click()
@@ -120,7 +124,6 @@ if confirmation:
               downloadDirectory = f'C:\\Users\\{login}\\Downloads'
               expectedFile = f'{process}.pdf'
               while not os.path.exists(os.path.join(downloadDirectory, expectedFile)):
-                print('Aguardando o download terminar...')
                 time.sleep(1)
               driver.back()
               #realizar o upload
@@ -178,14 +181,15 @@ if confirmation:
               waitUpload.until(EC.invisibility_of_element_located((By.XPATH,'//*[@id="btnGravarPreCadastroTcg"]/div')))
               time.sleep(5)
               #Botão de quando aparece o OK de processo enviado
-              driver.find_element(By.XPATH, '/html/body/div[9]/div/div[3]/button[1]').click()
+              driver.find_element(By.XPATH, '/html/body/div[19]/div/div[3]/button[1]').click()
               time.sleep(2)
               #clicar em visualizar depois de cadastrado
               updatePageProjudi(f'Processo {process} cadastrado via automação.', directory, todayTxt)
-            processBL = driver.find_element(By.XPATH, '//*[@id="ListarDadosExtraidosTcg"]/div/div[6]/div/div/div[1]/div/table/tbody/tr[1]/td[13]').text
-          driver.find_element(By.XPATH, '//*[@id="btnCancelar_UcPublicacaoTcgGrid"]').click()
-          preRegistred += 1
-          updatePageProjudi(f'Processo {process} já está na TCG.', directory, todayTxt)
+              break
+            processBL = driver.find_element(By.XPATH, '//*[@id="ListarDadosExtraidosTcg"]/div/div[6]/div/div/div[1]/div/table/tbody/tr[1]/td[14]').text
+          if str(processBL) == str(process):
+            preRegistred += 1
+            updatePageProjudi(f'Processo {process} já está na TCG.', directory, todayTxt)
           dayCienc = driver.find_element(By.XPATH, '//*[@id="Arquivos"]/div/table[2]/tbody/tr[3]/td[8]/font/strong').text
           dayCiencDate = datetime.strptime(dayCienc, "%d/%m/%y")
       except NoSuchElementException:
